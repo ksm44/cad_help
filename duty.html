@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#163f37">
+<title>Кадастровый помощник — калькулятор госпошлины</title>
+<link rel="stylesheet" href="style.css">
+<link rel="shortcut icon" href="favicon.ico">
+<style>
+.duty-form .field{display:flex;flex-direction:column;gap:6px;margin:0 0 18px}
+.duty-form label{font-weight:650;font-size:14px;color:#2c4a40}
+.duty-form .req{color:#a3572b;font-weight:700}
+.duty-form input,.duty-form select{width:100%;padding:10px 12px;border:1px solid #bdcabd;border-radius:7px;background:#fff;color:#173831;font:inherit}
+.duty-form input:focus,.duty-form select:focus{outline:3px solid #205a46;outline-offset:2px;border-color:#205a46}
+.duty-form input:disabled{background:#eef1e8;color:#7a8a7f;cursor:not-allowed}
+.duty-form .hint{font-size:12px;color:#627469;line-height:1.45}
+.duty-form .checks{display:grid;grid-template-columns:1fr;gap:6px}
+.duty-form .checks label{font-weight:400;font-size:14px;color:#2c4a40;display:flex;gap:9px;align-items:flex-start;padding:6px 8px;border-radius:6px}
+.duty-form .checks label:hover{background:#edf5e9}
+.duty-form .checks input{width:auto;margin-top:3px;accent-color:#205a46}
+.duty-form details.checks-block{border:1px solid #d4dfd0;border-radius:9px;padding:0 12px;background:#fbfcf8}
+.duty-form details.checks-block summary{cursor:pointer;padding:12px 0;font-weight:650;font-size:14px;color:#205a46}
+.duty-form .row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.duty-form .field .tooltip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#e6efe1;color:#3d6a4f;font-size:11px;font-weight:700;margin-left:6px;cursor:help;border:1px solid #b9cdb3}
+.duty-form .field .tooltip span{position:absolute;left:50%;top:130%;transform:translateX(-50%);width:320px;background:#173831;color:#f4f8ee;padding:10px 12px;border-radius:8px;font-size:12px;font-weight:400;line-height:1.45;display:none;z-index:5}
+.duty-form .field .tooltip:hover span,.duty-form .field .tooltip:focus-within span{display:block}
+.duty-form .subhead{font-size:13px;font-weight:650;color:#516f57;margin:0 0 8px}
+.duty-form .subhead-holder{margin:0 0 18px}
+.duty-form .actions {flex-direction: row;justify-content: space-between;}
+.duty-form .actions button.quiet{border:1px solid #c7d2c5;background:transparent;color:#35564b;padding:9px 18px;border-radius:7px}
+.duty-form .primary {font-size: 14px;}
+.duty-form .error{color:#8a2b2b;font-weight:600}
+.duty-form .autocalc{width:fit-content;margin:10px 0 0 auto;display:flex;justify-content:end;gap:9px;align-items:center;font-weight:400;font-size:14px;color:#2c4a40;cursor:pointer}
+.duty-form .autocalc input{width:auto;accent-color:#205a46}
+.duty-form .autocalc.hidden{display:none}
+
+/* Убираем обводку у чек-боксов при фокусе */
+.duty-form input[type="checkbox"]{outline:none!important;box-shadow:none!important}
+.duty-form input[type="checkbox"]:focus,.duty-form input[type="checkbox"]:focus-visible{outline:none!important;box-shadow:none!important;border:none}
+
+.duty-form input::placeholder,
+.duty-form textarea::placeholder{color:#cedbd8;}
+
+.duty-form .checks label,
+.duty-form .autocalc{
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* Кастомный дропдаун */
+.combo{position:relative}
+.combo .combo-input{width:100%;padding:10px 12px;border:1px solid #bdcabd;border-radius:7px;background:#fff;color:#173831;font:inherit;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:background .15s}
+.combo .combo-input::after{content:'▾';color:#4f6b5b;font-size:18px;flex:none}
+.combo .combo-input.placeholder{color:#7a8a7f}
+.combo .combo-input.filled{background:#e5f1df;border-color:#b9cdb3;font-weight:600}
+.combo .combo-input:focus-visible{outline:3px solid #205a46;outline-offset:2px;border-color:#205a46}
+.combo .combo-panel{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #bdcabd;border-radius:8px;box-shadow:0 12px 26px #17203318;z-index:20;display:none;flex-direction:column;overflow:hidden}
+.combo.open .combo-panel{display:flex}
+.combo .combo-search{padding:8px;border-bottom:1px solid #e3e9df}
+.combo .combo-search input{width:100%;padding:8px 10px;border:1px solid #cfd6cf;border-radius:6px;font:inherit}
+.combo .combo-search input:focus{outline:3px solid #205a46;outline-offset:1px;border-color:#205a46}
+.combo .placeholder:hover{background:#e5f1df}
+.combo .combo-list{list-style:none;margin:0;padding:4px;max-height:450px;overflow-y:auto;overscroll-behavior:contain}
+.combo .combo-list li{padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1.35;color:#173831}
+.combo .combo-list li:hover,.combo .combo-list li.hl{background:#edf5e9}
+.combo .combo-list li[aria-selected="true"]{background:#e5f1df;font-weight:600}
+.combo .combo-list li.empty{color:#7a8a7f;cursor:default;font-style:italic}
+.combo .combo-list li.empty:hover{background:transparent}
+.combo .combo-list::-webkit-scrollbar{width:10px}
+.combo .combo-list::-webkit-scrollbar-thumb{background:#c7d2c5;border-radius:6px}
+
+@media(max-width:650px){.duty-form .row{grid-template-columns:1fr}.duty-form .field .tooltip span{width:230px}.combo .combo-panel{max-height:280px}}
+@media print{.duty-form .actions,.duty-form .back,header,footer{display:none}}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="index.html#catalog"><span class="mark">▧</span>Кадастровый помощник</a>
+  <nav><a href="duty.html" class="active">Калькулятор госпошлины</a><a href="index.html#sources">Нормативная база</a></nav>
+</div></header>
+<main id="main"></main>
+<footer>Кадастровый помощник <span>Федеральные нормы РФ · 9 ноября 2026</span></footer>
+
+<script>
+'use strict';
+const main=document.querySelector('main');
+const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>Math.round(n).toLocaleString('ru-RU')+' ₽';
+
+const ACTIONS=[
+  ['','-- Пожалуйста, выберите --'],
+  ['combined_create','Кадастровый учёт и регистрация прав на созданные (образованные) объекты недвижимости (кроме ввода объекта в эксплуатацию, изъятия ЗУ)'],
+  ['cad_remove_reg','Снятие с государственного кадастрового учёта объекта недвижимости, права на который зарегистрированы в ЕГРН'],
+  ['part_reg','Учёт части объекта недвижимости и регистрация ограничений на такую часть'],
+  ['part_remove_reg','Снятие с государственного кадастрового учёта части объекта недвижимости при регистрации ограничений и обременений права'],
+  ['cad_only','Учёт объекта недвижимости без одновременной государственной регистрации прав'],
+  ['cad_remove_noreg','Снятие с государственного кадастрового учёта объекта недвижимости, права на который не зарегистрированы в ЕГРН'],
+  ['part_only','Учёт части объекта недвижимости без регистрации ограничений на такую часть'],
+  ['part_remove_noreg','Снятие с государственного кадастрового учёта части объекта недвижимости, ограничения и обременения на которую не регистрируются в соответствии с ФЗ'],
+  ['cad_change','Кадастровый учёт изменений основных сведений об объекте недвижимости'],
+  ['cad_prior','Внесение сведений о ранее учтённом объекте недвижимости'],
+  ['cad_view_change','Изменение вида объекта недвижимости в рамках учёта изменений основных характеристик'],
+  ['right_reg','Регистрация прав на учтённый в ЕГРН объект недвижимости'],
+  ['right_stop','Прекращение государственной регистрации прав без одновременного кадастрового учёта'],
+  ['right_transfer','Регистрация перехода права без одновременного кадастрового учёта'],
+  ['deal_restrict','Регистрация сделки об ограничении прав и обременении объекта недвижимости'],
+  ['restrict_reg','Регистрация ограничений прав и обременений объекта недвижимости'],
+  ['restrict_stop','Прекращение ограничений прав на объект недвижимости и обременений объекта недвижимости'],
+  ['part_restrict','Регистрация ограничений на учтённую в ЕГРН часть объекта недвижимости'],
+  ['info_interested','Внесение сведений в ЕГРН по инициативе заинтересованного лица'],
+  ['fix_tech','Исправление технических ошибок, содержащихся в ЕГРН'],
+  ['border_mvi','Внесение в ЕГРН сведений о границах в порядке межведомственного информационного взаимодействия'],
+  ['border_mvi_change','Изменение в ЕГРН сведений о границах в порядке межведомственного информационного взаимодействия'],
+  ['border_mvi_remove','Исключение из ЕГРН сведений о границах в порядке межведомственного информационного взаимодействия'],
+  ['suspend_req','Приостановление осуществления кадастрового учёта и (или) регистрации прав в заявительном порядке'],
+  ['stop_req','Прекращение осуществления кадастрового учёта и (или) регистрации прав в заявительном порядке'],
+  ['resume_reg','Возобновление государственной регистрации, ранее приостановленной по заявлению правообладателя'],
+  ['extra_docs','Обработка дополнительных документов, представляемых заявителем'],
+  ['border_init','Внесение в ЕГРН сведений о границах по инициативе заинтересованного лица'],
+  ['mortgage_endorse','Регистрация передачи права по закладной'],
+  ['mortgage_owner','Регистрация законного владельца закладной'],
+  ['mortgage_issue','Выдача закладной'],
+  ['take_back','Принятие объекта недвижимости вновь во владение, пользование и распоряжение'],
+  ['no_abandon','Обработка заявления о том, что собственник не совершал действий по отказу от права собственности'],
+  ['no_app_docs','Обработка документов, поступающих без заявлений'],
+  ['fix_border','Исправление технических ошибок в сведениях реестра границ'],
+  ['arrest','Обработка судебного акта или акта уполномоченного органа о наложении ареста'],
+  ['cad_cost_comm','Внесение сведений о КС ОН, установленной решением комиссии/суда'],
+  ['change_records','Внесение изменений в записи реестра прав, ограничений прав и обременений'],
+  ['correct_info','Корректировка сведений'],
+  ['no_ddu_right','Внесение сведений об отсутствии у застройщика права привлекать средства участников долевого строительства'],
+  ['prior_noapp','Внесение сведений о ранее учтённых объектах без заявления'],
+  ['ddu_suspend','Внесение сведений о приостановлении деятельности застройщика'],
+  ['ddu_liquid','Внесение сведений о ликвидации лица, привлекающего средства участников долевого строительства'],
+  ['new_border_part','Внесение нового участка границы объекта землеустройства']
+];
+
+const PAYERS=[
+  ['','-- Пожалуйста, выберите --'],
+  ['company','Юридическое лицо'],
+  ['person','Физическое лицо'],
+  ['foreign','Иностранное государство'],
+  ['public_authority','ФОИВ, РОИВ, ОМСУ'],
+  ['int_org','Международная организация'],
+  ['public_entity','Публично-правовое образование (РФ, субъект РФ или муниципальное образование)']
+];
+
+const OBJECTS=[
+  ['','-- Пожалуйста, выберите --'],
+  ['land','Земельный участок'],
+  ['building','Здание'],
+  ['premise','Помещение'],
+  ['structure','Сооружение'],
+  ['unfinished','Объект незавершённого строительства'],
+  ['enterprise','Предприятие как имущественный комплекс'],
+  ['complex','Единый недвижимый комплекс'],
+  ['carplace','Машино-место'],
+  ['other','Иной объект недвижимости']
+];
+
+const CHECKS=[
+  ['agri_land','Земельный участок сельскохозяйственного назначения'],
+  ['lph_land','Земельный участок для ЛПХ, огородничества, садоводства, ИЖС/ИГС и (или) создаваемый на нём объект'],
+  ['right_no_reg','Возникновение права не связано с государственной регистрацией'],
+  ['common_share','Доля в праве общей собственности на общее имущество в МКД, ином здании, сооружении'],
+  ['enterprise_ik','Предприятие как имущественный комплекс (ПИК)'],
+  ['state_muni','Объект в государственной или муниципальной собственности'],
+  ['mortgage_agreement','В связи с соглашением об изменении или расторжении договора об ипотеке'],
+  ['pif','Недвижимое имущество, составляющее ПИФ'],
+  ['reindeer','Земельный участок относится к землям северного оленеводства'],
+  ['religious','Религиозные организации'],
+  ['gas_network','Объекты сетей газораспределения и газопотребления при техприсоединении'],
+  ['benefits_333_35','Льготы согласно ст. 333.35 НК РФ'],
+  ['credit_holidays','Кредитные каникулы (пп. 33 п. 3 ст. 333.35 НК РФ)']
+];
+
+/* Форматирование сумм: 1000000 -> 1 000 000 */
+function formatMoneyInput(el){
+  const raw=el.value.replace(/\s/g,'').replace(',','.').replace(/[^\d.]/g,'');
+  if(!raw){el.value='';return;}
+  const dot=raw.indexOf('.');
+  let intPart=dot>=0?raw.slice(0,dot):raw;
+  let frac=dot>=0?raw.slice(dot+1):'';
+  intPart=intPart.replace(/^0+(?=\d)/,'');
+  frac=frac.slice(0,2);
+  const grouped=intPart.replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  el.value=dot>=0?(grouped+(frac?','+frac:'')):grouped;
+}
+
+/* Запрет изменения числа колесом мыши */
+function blockWheelNumber(el){
+  el.addEventListener('wheel',e=>{e.preventDefault();el.blur();},{passive:false});
+}
+
+/* Компонент кастомного выпадающего списка с поиском */
+function createCombo(root,{id,items,placeholder,onChange}){
+  root.innerHTML=`<button type="button" class="combo-input placeholder" id="${id}" aria-haspopup="listbox" aria-expanded="false"></button>
+    <div class="combo-panel">
+      <div class="combo-search"><input type="text" placeholder="Поиск…" aria-label="Поиск"></div>
+      <ul class="combo-list" role="listbox"></ul>
+    </div>`;
+  const btn=root.querySelector('.combo-input');
+  const search=root.querySelector('.combo-search input');
+  const list=root.querySelector('.combo-list');
+  let value='', hl=-1, filtered=items;
+
+  function labelOf(v){const it=items.find(i=>i[0]===v);return it?it[1]:'';}
+  function setDisplay(){
+    const l=value?labelOf(value):'';
+    btn.textContent=l||placeholder;
+    btn.classList.toggle('placeholder',!l);
+    btn.classList.toggle('filled',!!l);
+  }
+  function renderList(){
+    list.innerHTML='';
+    if(!filtered.length){list.innerHTML='<li class="empty">Ничего не найдено</li>';return;}
+    filtered.forEach((it,idx)=>{
+      const li=document.createElement('li');
+      li.textContent=it[1];
+      li.dataset.value=it[0];
+      li.setAttribute('role','option');
+      li.setAttribute('aria-selected',String(it[0]===value));
+      if(idx===hl) li.classList.add('hl');
+      li.addEventListener('click',()=>select(it[0]));
+      list.appendChild(li);
+    });
+  }
+  function select(v){
+    value=v;hl=-1;
+    setDisplay();
+    root.classList.remove('open');
+    btn.setAttribute('aria-expanded','false');
+    if(typeof onChange==='function') onChange(v);
+  }
+  function open(){
+    filtered=items.slice();
+    search.value='';
+    hl=-1;
+    renderList();
+    root.classList.add('open');
+    btn.setAttribute('aria-expanded','true');
+    setTimeout(()=>search.focus(),0);
+  }
+  function close(){root.classList.remove('open');btn.setAttribute('aria-expanded','false');}
+
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    root.classList.contains('open')?close():open();
+  });
+  search.addEventListener('input',()=>{
+    const q=search.value.trim().toLocaleLowerCase('ru');
+    filtered=items.filter(it=>it[1].toLocaleLowerCase('ru').includes(q));
+    hl=-1;renderList();
+  });
+  search.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();if(!filtered.length)return;hl=(hl+1)%filtered.length;renderList();list.children[hl]?.scrollIntoView({block:'nearest'});}
+    else if(e.key==='ArrowUp'){e.preventDefault();if(!filtered.length)return;hl=(hl-1+filtered.length)%filtered.length;renderList();list.children[hl]?.scrollIntoView({block:'nearest'});}
+    else if(e.key==='Enter'){e.preventDefault();if(hl>=0&&filtered[hl])select(filtered[hl][0]);}
+    else if(e.key==='Escape'){e.preventDefault();close();btn.focus();}
+  });
+  document.addEventListener('click',e=>{if(!root.contains(e.target))close();});
+
+  setDisplay();
+  return {
+    get value(){return value;},
+    set value(v){value=v||'';setDisplay();},
+    label:()=>labelOf(value)
+  };
+}
+
+let actionCombo,payerCombo,objectCombo;
+let autoCalc=false;
+
+function render(){
+  const checks=CHECKS.map(([v,l])=>`<label><input type="checkbox" data-check="${v}"> ${safe(l)}</label>`).join('');
+
+  main.innerHTML=`<div class="narrow">
+    <section class="panel duty-form">
+      <div class="eyebrow">Справочный сервис · предварительный расчёт</div>
+      <h1>Калькулятор госпошлины</h1>
+      <p class="muted" style="margin-top:0">Расчёт госпошлины за кадастровый учёт и регистрацию прав. Сумма пересчитывается автоматически.</p>
+
+      <div class="field">
+        <label>Регистрационное действие <span class="req">*</span></label>
+        <div class="combo" id="actionCombo"></div>
+        <div class="hint">Можно ввести часть названия для поиска.</div>
+      </div>
+
+      <div class="field">
+        <label>Тип заявителя <span class="req">*</span></label>
+        <div class="combo" id="payerCombo"></div>
+      </div>
+
+      <div class="field">
+        <label>Вид объекта <span class="req">*</span></label>
+        <div class="combo" id="objectCombo"></div>
+      </div>
+
+      <div class="field">
+        <label for="cadnum">Кадастровый номер</label>
+        <input id="cadnum" type="text" placeholder="Например, 77:01:0001001:1234" disabled>
+        <div class="hint">В разработке. Пока укажите кадастровую стоимость вручную ниже.</div>
+      </div>
+
+      <div class="subhead-holder">
+        <div class="subhead">Дополнительный признак</div>
+        <details class="checks-block">
+          <summary>Выбрать дополнительные признаки</summary>
+          <div class="checks">${checks}</div>
+        </details>
+      </div>
+
+      <div class="field">
+        <label for="deal">Цена сделки, ₽</label>
+        <input id="deal" inputmode="decimal" placeholder="Например, 1 000 000" data-money>
+      </div>
+
+      <div class="field">
+        <label for="ikValue">Стоимость имущества, имущественных и иных прав, входящих в состав ПИК, ₽
+          <span class="tooltip" tabindex="0">?<span>ПИК — предприятие как имущественный комплекс. По пп. 21 п. 1 ст. 333.33 НК РФ госпошлина = 0,2 % стоимости имущества и прав, входящих в состав ПИК, но не менее 0,2 % цены сделки и не более 1 000 000 ₽.</span></span>
+        </label>
+        <input id="ikValue" inputmode="decimal" placeholder="Только для ПИК" data-money>
+      </div>
+
+      <div class="field">
+        <label for="objects">Количество объектов недвижимости</label>
+        <input id="objects" type="number" min="1" max="1000" placeholder="1">
+      </div>
+
+      <div class="field">
+        <div class="subhead">Количество заявителей</div>
+        <div class="row">
+          <div><label for="peoplePerson">Физическое лицо</label><input id="peoplePerson" type="number" min="0" placeholder="0"></div>
+          <div><label for="peopleCompany">Юридическое лицо</label><input id="peopleCompany" type="number" min="0" placeholder="0"></div>
+          <div><label for="peoplePublic">Субъект публичного права</label><input id="peoplePublic" type="number" min="0" placeholder="0"></div>
+        </div>
+        <div class="hint">При нескольких заявителях без льгот общий платёж делится между ними поровну.</div>
+      </div>
+
+      <div class="field">
+        <label for="cadValue">Кадастровая стоимость, ₽</label>
+        <input id="cadValue" inputmode="decimal" placeholder="Например, 25 000 000" data-money>
+        <div class="hint">Введите стоимость всего объекта. При регистрации доли калькулятор применит её к доле.</div>
+      </div>
+
+      <div class="field">
+        <label for="shareNum">Размер регистрируемой доли — числитель</label>
+        <input id="shareNum" type="number" min="1" placeholder="1">
+      </div>
+      <div class="field">
+        <label for="shareDen">Размер регистрируемой доли — знаменатель</label>
+        <input id="shareDen" type="number" min="1" placeholder="1">
+        <div class="hint">Для 1/2 укажите 1 и 2. Для целого объекта — 1 и 1.</div>
+      </div>
+
+      <div class="actions">
+        <button class="quiet" id="clear">Очистить форму</button>
+        <button class="primary" id="calc">Рассчитать</button>
+      </div>
+      <label class="autocalc" title="Вкл/выкл авторасчет результата при любом изменении"><input type="checkbox" id="autoCalc" > Авторасчет</label>
+    </section>
+
+    <section class="panel" aria-live="polite">
+      <div class="eyebrow">Предварительный результат</div>
+      <div id="total" style="font-size:clamp(30px,5vw,44px);font-weight:800;letter-spacing:-1px;color:#205a46;margin:6px 0">—</div>
+      <p id="perPerson" class="muted" style="margin:0 0 10px">Выберите действие и нажмите «Рассчитать».</p>
+      <div id="detail" class="answers" style="font-size:14px"></div>
+      <div class="notice" style="font-size:13px;color:#627469;margin-top:14px"><b>Важно.</b> Независимый справочный калькулятор, не сервис Росреестра. Не запрашивает ЕГРН и не формирует платёжный документ. Перед оплатой сверьте расчёт на официальном сайте Росреестра с учётом льгот и актуальной редакции НК РФ.</div>
+    </section>
+  </div>`;
+
+  actionCombo=createCombo(document.getElementById('actionCombo'),{id:'action',items:ACTIONS,placeholder:'-- Пожалуйста, выберите --',onChange:()=>scheduleCalc()});
+  payerCombo=createCombo(document.getElementById('payerCombo'),{id:'payer',items:PAYERS,placeholder:'-- Пожалуйста, выберите --',onChange:()=>scheduleCalc()});
+  objectCombo=createCombo(document.getElementById('objectCombo'),{id:'object',items:OBJECTS,placeholder:'-- Пожалуйста, выберите --',onChange:()=>scheduleCalc()});
+
+  /* Форматирование денежных сумм */
+  document.querySelectorAll('[data-money]').forEach(el=>{
+    el.addEventListener('input',()=>{formatMoneyInput(el);scheduleCalc();});
+    el.addEventListener('blur',()=>formatMoneyInput(el));
+  });
+
+  /* Запрет изменения чисел колесом мыши на всех числовых инпутах */
+  document.querySelectorAll('input[type="number"]').forEach(blockWheelNumber);
+
+  /* Всё остальное — триггерит пересчёт при авто-режиме */
+  ['objects','peoplePerson','peopleCompany','peoplePublic','shareNum','shareDen'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',scheduleCalc);
+  });
+  document.querySelectorAll('[data-check]').forEach(c=>c.addEventListener('change',scheduleCalc));
+
+  document.getElementById('calc').onclick=calculate;
+  document.getElementById('clear').onclick=clearForm;
+
+  const auto=document.getElementById('autoCalc');
+  auto.addEventListener('change',()=>{
+    autoCalc=auto.checked;
+    document.getElementById('calc').style.display=autoCalc?'none':'';
+    if(autoCalc) calculate();
+  });
+  auto.checked=autoCalc;
+  document.getElementById('calc').style.display=autoCalc?'none':'';
+}
+
+function scheduleCalc(){if(autoCalc) calculate();}
+
+function num(id){
+  const s=document.getElementById(id).value.trim().replace(/\s/g,'').replace(',','.');
+  if(!s) return 0;
+  const v=Number(s); return Number.isFinite(v)&&v>=0?v:NaN;
+}
+
+function showError(msg){
+  document.getElementById('total').textContent='—';
+  document.getElementById('perPerson').innerHTML='<span class="error">'+safe(msg)+'</span>';
+  document.getElementById('detail').textContent='';
+}
+
+function calculate(){
+  const action=actionCombo.value;
+  const payer=payerCombo.value;
+  const objectType=objectCombo.value;
+  const checks=Object.fromEntries([...document.querySelectorAll('[data-check]')].map(c=>[c.dataset.check,c.checked]));
+  if(!action){showError('Выберите регистрационное действие.');return;}
+  if(!payer){showError('Выберите тип заявителя.');return;}
+  if(!objectType){showError('Выберите вид объекта.');return;}
+
+  const n=Math.max(1,Math.floor(num('shareNum')||1));
+  const d=Math.max(1,Math.floor(num('shareDen')||1));
+  const share=Math.min(1,n/d);
+  const cad=num('cadValue');
+  const deal=num('deal');
+  const ikValue=num('ikValue');
+  if(Number.isNaN(cad)||Number.isNaN(deal)||Number.isNaN(ikValue)){showError('Проверьте введённые суммы.');return;}
+  const isPerson=payer==='person';
+  const isCompany=payer==='company';
+  const objects=Math.max(1,Math.floor(num('objects')||1));
+
+  const fixed={
+    cad_only:[2000,22000,'Кадастровый учёт объекта без регистрации права'],
+    cad_change:[1000,2000,'Кадастровый учёт изменений основных сведений'],
+    cad_prior:[1000,2000,'Внесение сведений о ранее учтённом объекте'],
+    cad_view_change:[1000,2000,'Изменение вида объекта в рамках учёта изменений'],
+    combined_create:[6000,66000,'Одновременный кадастровый учёт и регистрация созданного объекта'],
+    right_reg:[2000,22000,'Регистрация прав на учтённый объект'],
+    right_transfer:[2000,22000,'Регистрация перехода права'],
+    restrict_reg:[1000,4000,'Регистрация ограничений и обременений'],
+    part_restrict:[1000,4000,'Регистрация ограничений на часть объекта'],
+    mortgage_agreement_present:[1000,4000,'Регистрация ипотеки'],
+    mortgage_agreement_change:[400,1200,'Изменение записи об ипотеке'],
+    mortgage_endorse:[700,12000,'Регистрация передачи права по закладной'],
+    mortgage_owner:[700,12000,'Регистрация законного владельца закладной']
+  };
+
+  let perObject=0, basis='';
+  let count=1;
+
+  if(action==='combined_create'||action==='cad_only'||action==='right_reg'){
+    if(checks.lph_land){
+      perObject=isPerson?700:7000;
+      basis='Специальная ставка для участка/объекта для ЛПХ, садоводства, ИЖС/ИГС, гаража (пп. 24 или 24.1 ст. 333.33 НК РФ).';
+    } else if(checks.agri_land){
+      perObject=isPerson?700:7000;
+      basis='Ставка для земель сельскохозяйственного назначения (пп. 25 или 25.1 ст. 333.33 НК РФ).';
+    } else {
+      const key=action==='cad_only'?'cad_only':action==='right_reg'?'right_reg':'combined_create';
+      const row=fixed[key];
+      perObject=isPerson?row[0]:(isCompany?row[1]:row[0]);
+      basis=row[2]+'.';
+    }
+    count=objects;
+  } else if(action==='cad_change'||action==='cad_prior'||action==='cad_view_change'){
+    const row=fixed[action];
+    perObject=isPerson?row[0]:row[1];
+    basis=row[2]+'.';
+    count=1;
+  } else if(action==='restrict_reg'||action==='part_restrict'||action==='deal_restrict'){
+    const row=fixed.restrict_reg;
+    perObject=isPerson?row[0]:row[1];
+    basis=row[2]+'.';
+    count=1;
+  } else if(action==='right_transfer'){
+    const threshold=isPerson?20000000:22000000;
+    const rate=isPerson?0.0002:0.002;
+    const cap=isPerson?500000:1000000;
+    const base=isPerson?4000:44000;
+    const cadPart=cad*share, dealPart=deal*share;
+    if(!cad||cadPart<=threshold){
+      perObject=base;
+      basis=`Кадастровая стоимость доли ${money(cadPart)} — не выше порога ${money(threshold)}.`;
+    } else {
+      const fromCad=cadPart*rate, fromDeal=dealPart*rate;
+      const raw=Math.min(cap,Math.max(fromCad,fromDeal));
+      perObject=Math.floor(raw/100)*100;
+      basis=`Ставка ${isPerson?'0,02%':'0,2%'} от кадастровой стоимости доли (${money(fromCad)})${dealPart>0?'; ориентир по цене сделки — '+money(fromDeal):''}; предел ${money(cap)}; округление вниз до 100 ₽.`;
+    }
+    count=objects;
+  } else if(checks.enterprise_ik||objectType==='enterprise'){
+    if(ikValue<=0){showError('Для ПИК укажите стоимость имущества и прав, входящих в состав предприятия.');return;}
+    const fromValue=ikValue*0.002;
+    const fromDeal=deal>0?deal*0.002:0;
+    const raw=Math.min(1000000,Math.max(fromValue,fromDeal));
+    perObject=raw;
+    basis=`ПИК: 0,2 % стоимости имущества (${money(fromValue)})${deal>0?'; ориентир по цене сделки — '+money(fromDeal):''}; не более 1 000 000 ₽.`;
+    count=1;
+  } else if(action==='general'){
+    const threshold=isPerson?20000000:22000000;
+    const rate=isPerson?0.0002:0.002;
+    const cap=isPerson?500000:1000000;
+    const base=isPerson?4000:44000;
+    const cadPart=cad*share;
+    if(!cad||cadPart<=threshold){perObject=base;basis='Базовая ставка.';}
+    else{const raw=Math.min(cap,cadPart*rate);perObject=Math.floor(raw/100)*100;basis='0,02%/0,2% от кадастровой стоимости доли с пределом.';}
+    count=objects;
+  } else {
+    perObject=isPerson?350:1000;
+    basis='Справочная оценка по базовой ставке; уточните по НК РФ для выбранного действия.';
+    count=1;
+  }
+
+  if(!Number.isFinite(perObject)){showError('Не удалось выполнить расчёт.');return;}
+  const total=perObject*count;
+
+  const pp=Math.max(0,Math.floor(num('peoplePerson')||0));
+  const pc=Math.max(0,Math.floor(num('peopleCompany')||0));
+  const pu=Math.max(0,Math.floor(num('peoplePublic')||0));
+  const people=pp+pc+pu;
+  const each=people>0?total/people:total;
+
+  document.getElementById('total').textContent=money(total);
+  document.getElementById('perPerson').textContent=people>1
+    ?`Всего плательщиков: ${people}. Доля одного: ${money(each)}.`
+    :'На одного заявителя: '+money(total);
+  document.getElementById('detail').innerHTML=
+    `<div><b>Основание:</b> ${safe(basis)}</div>`+
+    `<div><b>Ставка на один объект:</b> ${money(perObject)}</div>`+
+    `<div><b>Количество объектов:</b> ${count}</div>`+
+    `<div><b>Общая сумма:</b> ${money(total)}</div>`+
+    `<div><b>Справочно:</b> расчёт предварительный; льготы и особые режимы не применены автоматически.</div>`;
+}
+
+function clearForm(){
+  actionCombo.value='';
+  payerCombo.value='';
+  objectCombo.value='';
+  ['deal','ikValue','cadValue','cadnum','objects','shareNum','shareDen','peoplePerson','peopleCompany','peoplePublic'].forEach(id=>document.getElementById(id).value='');
+  document.querySelectorAll('[data-check]').forEach(c=>c.checked=false);
+  document.getElementById('total').textContent='—';
+  document.getElementById('perPerson').textContent='Выберите действие и нажмите «Рассчитать».';
+  document.getElementById('detail').textContent='';
+  if(autoCalc) calculate();
+}
+
+render();
+</script>
+</body>
+</html>
